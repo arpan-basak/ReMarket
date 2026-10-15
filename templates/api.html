@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}API guide · ReMarket{% endblock %}
+{% block content %}
+<div class="container api-page">
+  <header class="api-hero">
+    <span class="section-kicker">DEVELOPER INTEGRATION</span>
+    <h1>Connect CraftProof to ReMarket</h1>
+    <p>When a certified item is purchased, ReMarket saves its certificate code and the buyer’s name. CraftProof can read that completed sale from ReMarket’s protected API and record the buyer as the new holder.</p>
+    <div class="api-status"><span class="tiny-dot"></span> Sale API key: <strong>{{ 'configured on this server' if api_key_configured else 'not configured on this server' }}</strong></div>
+    <div class="api-hero-links"><a class="button button-primary" href="#setup">Set up access</a><a class="button button-outline" href="#endpoints">See endpoints</a></div>
+  </header>
+
+  <div class="api-layout">
+    <nav class="api-toc" aria-label="API guide sections">
+      <strong>On this page</strong>
+      <a href="#flow">How it works</a>
+      <a href="#setup">Set up access</a>
+      <a href="#endpoints">Endpoints</a>
+      <a href="#response">Sale response</a>
+      <a href="#craftproof-work">CraftProof implementation</a>
+      <a href="#limits">Current limits</a>
+    </nav>
+
+    <div class="api-content">
+      <section class="api-card" id="flow">
+        <span class="section-kicker">01 · OVERVIEW</span>
+        <h2>How the connection works</h2>
+        <ol class="api-steps">
+          <li><strong>ReMarket records a purchase.</strong> A listing with a CraftProof certificate code becomes a completed order. ReMarket saves the code and buyer name at checkout.</li>
+          <li><strong>CraftProof reads the sale.</strong> Its server requests new sales from ReMarket using a shared API key. It can also request one order by ID.</li>
+          <li><strong>CraftProof updates the certificate.</strong> Its server finds the item by certificate code, checks the sale, and records the buyer name as the new holder.</li>
+        </ol>
+        <p class="api-callout">CraftProof initiates the API request. ReMarket does not call a CraftProof transfer endpoint or update its ownership ledger.</p>
+      </section>
+
+      <section class="api-card" id="setup">
+        <span class="section-kicker">02 · AUTHENTICATION</span>
+        <h2>Set up access</h2>
+        <p>The ReMarket server owner sets a long random secret in the <code>REMARKET_SALE_API_KEY</code> environment variable before starting the app. The same secret is given privately to the CraftProof server team.</p>
+        <pre><code># PowerShell, on the ReMarket server
+$env:REMARKET_SALE_API_KEY = "YOUR_LONG_RANDOM_SECRET"
+.\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000</code></pre>
+        <p>Every sale request must include:</p>
+        <pre><code>Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
+        <p>Make these requests from the CraftProof backend, not browser JavaScript. Never place the secret in a public page or frontend bundle. The value of this server’s key is intentionally not displayed here.</p>
+        <p><strong>Base URL seen by this page:</strong> <code>{{ api_base }}</code>. CraftProof needs a publicly reachable HTTPS ReMarket URL; <code>127.0.0.1</code> works only on the developer’s own computer.</p>
+        <p>To check that the ReMarket server is reachable, request <code>GET {{ api_base }}/health</code>. It returns <code>{"status":"ok"}</code> without an API key.</p>
+      </section>
+
+      <section class="api-card" id="endpoints">
+        <span class="section-kicker">03 · REQUESTS</span>
+        <h2>Endpoints</h2>
+        <div class="api-endpoint"><span>GET</span><code>/api/v1/sales?after_id=0&amp;limit=100</code></div>
+        <p>List completed sales that have a certificate code, oldest first. The response includes <code>next_after_id</code>. Use it as <code>after_id</code> on the next poll. <code>limit</code> must be 1–100 and defaults to 100.</p>
+        <pre><code>GET {{ api_base }}/api/v1/sales?after_id=0&amp;limit=100
+Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
+        <div class="api-endpoint"><span>GET</span><code>/api/v1/sales/RM-000001</code></div>
+        <p>Fetch one order by its ReMarket order ID. This also works for an order without a certificate, which will have <code>certificate_code: null</code>. Such orders do not appear in the list above.</p>
+        <pre><code>GET {{ api_base }}/api/v1/sales/RM-000001
+Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
+        <div class="api-response-codes"><div><strong>200</strong><span>Sale data returned</span></div><div><strong>400 / 422</strong><span>Invalid pagination value</span></div><div><strong>401</strong><span>Missing or incorrect key</span></div><div><strong>404</strong><span>Order ID not found</span></div><div><strong>503</strong><span>ReMarket API key not configured</span></div></div>
+      </section>
+
+      <section class="api-card" id="response">
+        <span class="section-kicker">04 · DATA FORMAT</span>
+        <h2>Sale response</h2>
+        <p>The list endpoint returns a <code>sales</code> array and a cursor. The single-order endpoint returns one sale object directly.</p>
+        <pre><code>{
+  "sales": [
+    {
+      "order_id": "RM-000001",
+      "certificate_code": "KOODE0LL",
+      "buyer_name": "Asha Rao",
+      "status": "completed",
+      "completed_at": "2026-10-14T12:00:00+00:00"
+    }
+  ],
+  "next_after_id": 1
+}</code></pre>
+        <p>The certificate code and buyer name are saved when the purchase happens. No buyer or seller CraftProof ID is sent. ReMarket does not collect a transfer address because CraftProof’s current transfer request does not have an address field.</p>
+      </section>
+
+      <section class="api-card" id="craftproof-work">
+        <span class="section-kicker">05 · PARTNER IMPLEMENTATION</span>
+        <h2>What the CraftProof team builds</h2>
+        <ul class="api-checklist">
+          <li>Store the shared ReMarket API key on the CraftProof server and poll the sale list, or fetch a known order ID.</li>
+          <li>Check that the order is completed, resolve <code>certificate_code</code> to the CraftProof item, and validate that this sale should change its ownership.</li>
+          <li>Record <code>buyer_name</code> as the new holder. CraftProof’s current transfer request supports <code>to_name</code>; its existing protected route uses an internal piece ID, so the certificate-code lookup belongs on the CraftProof side.</li>
+          <li>Save <code>order_id</code> as a unique import reference. If the same sale is polled again, do not transfer it twice. Keep failed order IDs for retry or review.</li>
+        </ul>
+        <p>ReMarket also reads CraftProof’s public <code>GET /api/verify/{code}</code> endpoint to show certificate history on a listing. That read endpoint does not require a CraftProof login. <a class="text-link" href="https://craftproof-backend.onrender.com/docs" target="_blank" rel="noopener">View CraftProof’s API documentation ↗</a></p>
+      </section>
+
+      <section class="api-card" id="limits">
+        <span class="section-kicker">06 · BEFORE GOING LIVE</span>
+        <h2>Current limits</h2>
+        <p>This is a demo marketplace. Its purchase button records an order without payment or physical handoff verification. The buyer’s ReMarket name is self reported, so it is not proof of identity. CraftProof must decide what validation is sufficient before changing a real certificate.</p>
+        <p>ReMarket exposes the sale API, but CraftProof has not yet connected its importer. A completed purchase will not automatically change the CraftProof owner until that partner work is done. The API is available in FastAPI’s <a class="text-link" href="/docs">interactive documentation</a>.</p>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

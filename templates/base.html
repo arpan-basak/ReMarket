@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ReMarket is a simple secondhand marketplace demo with optional CraftProof ownership history.">
+  <link rel="icon" href="data:,">
+  <title>{% block title %}ReMarket{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="/" aria-label="ReMarket home"><span class="brand-mark">R</span><span>Re<span class="brand-accent">Market</span></span></a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">Browse</a>
+        <a href="/#categories">Categories</a>
+        <a href="/#how-it-works">How it works</a>
+        <a href="/api" class="{% if request.url.path == '/api' %}active{% endif %}" {% if request.url.path == '/api' %}aria-current="page"{% endif %}>API</a>
+      </nav>
+      <form class="nav-search" action="/" method="get" role="search">
+        <label class="sr-only" for="nav-q">Search listings</label>
+        <input id="nav-q" name="q" type="search" placeholder="Search items" value="{{ q|default('') }}">
+        <button type="submit" aria-label="Search">⌕</button>
+      </form>
+      <div class="nav-actions">
+        <a class="button button-primary nav-sell" href="/sell"><span aria-hidden="true">＋</span> Sell an item</a>
+        {% if user %}<a class="avatar" href="/account" title="My account" aria-label="My account">{{ user.name[0]|upper }}</a>{% else %}<a class="button button-outline nav-login" href="/login">Sign in</a>{% endif %}
+      </div>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">☰</button>
+    </div>
+    <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile navigation" hidden>
+      <a href="/">Browse</a><a href="/#categories">Categories</a><a href="/#how-it-works">How it works</a><a href="/api">API</a><a href="/sell">Sell an item</a>
+      {% if user %}<a href="/account">My account</a>{% else %}<a href="/login">Sign in</a>{% endif %}
+    </nav>
+  </header>
+  {% if message %}<div class="toast" role="status">{{ message }}</div>{% endif %}
+  <main>{% block content %}{% endblock %}</main>
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><a class="brand" href="/"><span class="brand-mark">R</span><span>Re<span class="brand-accent">Market</span></span></a><p>A small, local secondhand marketplace demo.</p></div>
+      <div><h3>Marketplace</h3><a href="/">Browse all</a><a href="/#categories">Categories</a><a href="/sell">Sell an item</a></div>
+      <div><h3>Explore</h3><a href="/#how-it-works">How it works</a><a href="/api">ReMarket API</a><a href="/account">My account</a><a href="https://craftproof-backend.onrender.com/docs" target="_blank" rel="noopener">CraftProof API ↗</a></div>
+      <div><h3>About this demo</h3><p>Purchases are simulated. No money changes hands. CraftProof data appears only for listings with a registered certificate.</p></div>
+    </div>
+    <div class="container footer-bottom"><span>© ReMarket student project</span><span>Buy secondhand. Know the story.</span></div>
+  </footer>
+</body>
+</html>

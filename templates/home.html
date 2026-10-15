@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}ReMarket · Find something worth keeping{% endblock %}
+{% block content %}
+<section class="hero-section">
+  <div class="container hero">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="tiny-dot"></span> Local secondhand marketplace</span>
+      <h1>Give great gear a <span>second life.</span></h1>
+      <p>Find useful things from people nearby. Explore clear listing details and, when available, the item’s CraftProof ownership record.</p>
+      <form class="hero-search" action="/" method="get" role="search">
+        <label class="sr-only" for="hero-q">Search listings</label>
+        <span class="search-icon" aria-hidden="true">⌕</span><input id="hero-q" type="search" name="q" value="{{ q }}" placeholder="Search cameras, bikes, books and more">
+        <button class="button button-primary" type="submit">Search items</button>
+      </form>
+      <div class="hero-notes"><span>◎ Browse nearby listings</span><span>♧ Give items longer lives</span><span>◇ Optional CraftProof history</span></div>
+    </div>
+    <div class="hero-art" aria-hidden="true"><div class="hero-ring"><span>✓</span></div><div class="hero-art-label">Good finds, new chapters.</div></div>
+  </div>
+</section>
+
+<section class="catalog-section container" id="categories">
+  <div class="category-scroll" aria-label="Categories">
+    <a class="chip {% if not category %}selected{% endif %}" href="/?q={{ q|urlencode }}">All items</a>
+    {% for item in categories %}<a class="chip {% if category == item %}selected{% endif %}" href="/?category={{ item|urlencode }}&q={{ q|urlencode }}">{{ item }}</a>{% endfor %}
+  </div>
+  <div class="catalog-toolbar"><div class="section-head"><div><span class="section-kicker">DISCOVER</span><h2>Fresh finds</h2><p>Browse the latest items listed on ReMarket.</p></div><a class="text-link" href="/sell">Have something to sell? →</a></div>
+  <form class="filter-row" action="/" method="get">
+    <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="category" value="{{ category }}">
+    <div class="filter-pills" role="group" aria-label="Condition filter">
+      <a class="mini-pill {% if not condition %}on{% endif %}" href="/?q={{ q|urlencode }}&category={{ category|urlencode }}">Any condition</a>
+      {% for item in conditions %}<a class="mini-pill {% if condition == item %}on{% endif %}" href="/?q={{ q|urlencode }}&category={{ category|urlencode }}&condition={{ item|urlencode }}">{{ item }}</a>{% endfor %}
+    </div>
+    <label class="sort-label">Sort <select name="sort" onchange="this.form.submit()"><option value="newest" {% if sort == 'newest' %}selected{% endif %}>Recently added</option><option value="price-low" {% if sort == 'price-low' %}selected{% endif %}>Price: low to high</option><option value="price-high" {% if sort == 'price-high' %}selected{% endif %}>Price: high to low</option></select></label>
+  </form>
+  </div>
+  {% if q or category or condition %}<p class="result-count">{{ products|length }} result{{ '' if products|length == 1 else 's' }}{% if q %} for “{{ q }}”{% endif %}</p>{% endif %}
+  {% if products %}<div class="product-grid">
+    {% for item in products %}<a class="product-card" href="/products/{{ item.id }}">
+      <div class="card-image">{% if item.image_path %}<img src="{{ item.image_path if item.image_path.startswith('/') else '/static/img/' + item.image_path }}" alt="{{ item.title }}" loading="lazy">{% else %}<div class="image-fallback">ReMarket</div>{% endif %}<span class="condition-tag {{ item.condition|lower|replace(' ', '-') }}">{{ item.condition }}</span></div>
+      <div class="card-content"><div class="card-price">{{ item.price_cents|money }}{% if item.is_sample %}<span class="sample-tag">Sample</span>{% endif %}</div><h3>{{ item.title }}</h3><p class="card-location">⌖ {{ item.location }}</p><div class="card-bottom"><span>{{ item.seller_name }}</span><span>View item →</span></div></div>
+    </a>{% endfor %}
+  </div>{% else %}<div class="empty-state"><div class="empty-icon">⌕</div><h3>No items found</h3><p>Try another search or category, or be the first to list something.</p><a class="button button-primary" href="/sell">Sell an item</a></div>{% endif %}
+</section>
+
+<section class="story-section" id="how-it-works"><div class="container story-grid"><div><span class="eyebrow"><span class="tiny-dot"></span> A little more confidence</span><h2>Secondhand shopping, with more of the story.</h2><p>ReMarket makes it easy to list and find items. Sellers can add a CraftProof certificate code so shoppers can see the public record for an already registered item.</p><div class="story-points"><div><span class="point-icon">1</span><div><strong>Explore nearby finds</strong><small>Search, filter, and compare clear listing details.</small></div></div><div><span class="point-icon">2</span><div><strong>Check the record</strong><small>When a certificate is attached, view its live CraftProof history.</small></div></div><div><span class="point-icon">3</span><div><strong>Confirm a demo purchase</strong><small>The order is saved locally; there is no payment gateway.</small></div></div></div></div><div class="story-side"><div class="info-card"><span class="info-symbol">↺</span><h3>More life for useful things</h3><p>Pass along items you no longer need and help someone else get good use from them.</p></div><div class="info-card"><span class="info-symbol">◇</span><h3>CraftProof, when available</h3><p>A linked certificate shows the existing public record. ReMarket does not independently verify a seller’s ownership.</p></div><div class="story-cta"><div><strong>Ready to make room?</strong><p>List your item in a few simple steps.</p></div><a class="button button-light" href="/sell">Start selling →</a></div></div></div></section>
+{% endblock %}
