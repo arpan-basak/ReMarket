@@ -29,13 +29,13 @@
       </form>
       <div class="nav-actions">
         <a class="button button-primary nav-sell" href="/sell"><span aria-hidden="true">＋</span> Sell an item</a>
-        {% if user %}<a class="avatar" href="/account" title="My account" aria-label="My account">{{ user.name[0]|upper }}</a>{% else %}<a class="button button-outline nav-login" href="/login">Sign in</a>{% endif %}
+        {% if user %}<a class="avatar" href="/account" title="{{ user.name }} · My account" aria-label="{{ user.name }} · My account">{{ user.name[0]|upper }}</a><form method="post" action="/logout"><button class="button button-outline" type="submit">Sign out</button></form>{% else %}<a class="button button-outline nav-login" href="/login">Sign in</a><a class="button button-primary nav-register" href="/register">Create account</a>{% endif %}
       </div>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">☰</button>
     </div>
     <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile navigation" hidden>
       <a href="/">Browse</a><a href="/#categories">Categories</a><a href="/#how-it-works">How it works</a><a href="/api">API</a><a href="/sell">Sell an item</a>
-      {% if user %}<a href="/account">My account</a>{% else %}<a href="/login">Sign in</a>{% endif %}
+      {% if user %}<a href="/account">My account ({{ user.name }})</a><form method="post" action="/logout"><button type="submit">Sign out</button></form>{% else %}<a href="/login">Sign in</a><a href="/register">Create account</a>{% endif %}
     </nav>
   </header>
   {% if message %}<div class="toast" role="status">{{ message }}</div>{% endif %}

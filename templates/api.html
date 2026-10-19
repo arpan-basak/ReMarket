@@ -70,6 +70,7 @@ Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
     {
       "order_id": "RM-000001",
       "certificate_code": "KOODE0LL",
+      "item_title": "Speckled tea bowl set",
       "buyer_name": "Asha Rao",
       "status": "completed",
       "completed_at": "2026-10-14T12:00:00+00:00"
@@ -85,7 +86,7 @@ Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
         <h2>What the CraftProof team builds</h2>
         <ul class="api-checklist">
           <li>Store the shared ReMarket API key on the CraftProof server and poll the sale list, or fetch a known order ID.</li>
-          <li>Check that the order is completed, resolve <code>certificate_code</code> to the CraftProof item, and validate that this sale should change its ownership.</li>
+          <li>Check that the order is completed, resolve <code>certificate_code</code> to the CraftProof item, and confirm that <code>item_title</code> matches the certificate title before changing ownership.</li>
           <li>Record <code>buyer_name</code> as the new holder. CraftProof’s current transfer request supports <code>to_name</code>; its existing protected route uses an internal piece ID, so the certificate-code lookup belongs on the CraftProof side.</li>
           <li>Save <code>order_id</code> as a unique import reference. If the same sale is polled again, do not transfer it twice. Keep failed order IDs for retry or review.</li>
         </ul>
@@ -96,7 +97,7 @@ Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
         <span class="section-kicker">06 · BEFORE GOING LIVE</span>
         <h2>Current limits</h2>
         <p>This is a demo marketplace. Its purchase button records an order without payment or physical handoff verification. The buyer’s ReMarket name is self reported, so it is not proof of identity. CraftProof must decide what validation is sufficient before changing a real certificate.</p>
-        <p>ReMarket exposes the sale API, but CraftProof has not yet connected its importer. A completed purchase will not automatically change the CraftProof owner until that partner work is done. The API is available in FastAPI’s <a class="text-link" href="/docs">interactive documentation</a>.</p>
+        <p>ReMarket exposes the sale API, and an importer has been prepared in a local CraftProof fork. {% if api_key_configured %}This ReMarket server has a sale API key configured.{% else %}This ReMarket server needs a sale API key before CraftProof can read sales.{% endif %} The CraftProof fork is not pushed or deployed, so a local purchase will not change the live CraftProof website. A sale whose item title differs from the certificate title is skipped. The API is available in FastAPI’s <a class="text-link" href="/docs">interactive documentation</a>.</p>
       </section>
     </div>
   </div>

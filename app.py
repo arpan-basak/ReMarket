@@ -26,10 +26,10 @@ from starlette.middleware.sessions import SessionMiddleware
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("REMARKET_DB", ROOT / "remarket.db"))
 UPLOADS = ROOT / "static" / "uploads"
-CRAFTPROOF_BASE = os.environ.get(
-    "CRAFTPROOF_BASE_URL", "https://craftproof-backend.onrender.com"
-).rstrip("/")
+CRAFTPROOF_REMOTE_BASE = "https://craftproof-backend.onrender.com"
+CRAFTPROOF_LOCAL_BASE = "http://127.0.0.1:8002"
 SALE_API_KEY = os.environ.get("REMARKET_SALE_API_KEY", "")
+AUTH_SESSION_VERSION = 1  # Older cookies were created before explicit sign-in was required.
 CATEGORIES = [
     "Tech & Gadgets", "Bikes & Mobility", "Cameras", "Audio & Sound",
     "Furniture & Home", "Study & Books", "Other",
@@ -59,6 +59,7 @@ app = FastAPI(title="ReMarket", version="0.1.0")
 app.add_middleware(
     SessionMiddleware,
     secret_key=get_secret(),
+    max_age=None,  # Keep sign-in only for the current browser session.
     same_site="lax",
     https_only=os.environ.get("REMARKET_HTTPS_ONLY") == "1",
 )
@@ -170,6 +171,11 @@ def init_db() -> None:
                    VALUES(?,?,?,?,?,?,?,?,1,?)""",
                 [(seller_id, *item, now()) for item in samples],
             )
+        if not con.execute("SELECT 1 FROM users WHERE email=?", ("buyer@remarket.local",)).fetchone():
+            con.execute(
+                "INSERT INTO users(name,email,password_hash,created_at) VALUES(?,?,?,?)",
+                ("Sample Buyer", "buyer@remarket.local", password_hash("buyer12345"), now()),
+            )
 
 
 init_db()
@@ -178,6 +184,9 @@ init_db()
 def user_for(request: Request):
     user_id = request.session.get("user_id")
     if not user_id:
+        return None
+    if request.session.get("auth_version") != AUTH_SESSION_VERSION:
+        request.session.clear()
         return None
     with db() as con:
         return con.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
@@ -223,6 +232,10 @@ def redirect(path: str, message: str | None = None, request: Request | None = No
     return RedirectResponse(path, status_code=303)
 
 
+def safe_next(path: str) -> str:
+    return path if path.startswith("/") and not path.startswith("//") and "\\" not in path else "/account"
+
+
 def product_row(con: sqlite3.Connection, product_id: int):
     return con.execute(
         """SELECT p.*, u.name AS seller_name
@@ -231,21 +244,42 @@ def product_row(con: sqlite3.Connection, product_id: int):
     ).fetchone()
 
 
-def certificate_data(code: str):
+def craftproof_bases(request: Request) -> list[str]:
+    configured = os.environ.get("CRAFTPROOF_BASE_URL", "").rstrip("/")
+    if configured:
+        return [configured]
+    if request.url.hostname in ("127.0.0.1", "localhost"):
+        return [CRAFTPROOF_LOCAL_BASE, CRAFTPROOF_REMOTE_BASE]
+    return [CRAFTPROOF_REMOTE_BASE]
+
+
+def certificate_data(request: Request, code: str):
+    bases = craftproof_bases(request)
     if not re.fullmatch(r"[A-Za-z0-9-]{4,64}", code):
-        return None, "Certificate code has an invalid format."
-    try:
-        response = httpx.get(f"{CRAFTPROOF_BASE}/api/verify/{quote(code)}", timeout=8)
-        if response.status_code == 404:
-            return None, "CraftProof has no record for this code."
-        response.raise_for_status()
-        return response.json(), None
-    except (httpx.HTTPError, ValueError):
-        return None, "CraftProof is unavailable right now. Try again later."
+        return None, "Certificate code has an invalid format.", bases[0]
+    missing_count = 0
+    for base in bases:
+        try:
+            response = httpx.get(
+                f"{base}/api/verify/{quote(code)}",
+                timeout=3 if base == CRAFTPROOF_LOCAL_BASE else 20,
+            )
+            if response.status_code == 404:
+                missing_count += 1
+                continue
+            response.raise_for_status()
+            return response.json(), None, base
+        except (httpx.HTTPError, ValueError):
+            continue
+    error = ("CraftProof has no record for this code." if missing_count == len(bases)
+             else "CraftProof is unavailable right now. Try again later.")
+    return None, error, bases[-1]
 
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, q: str = "", category: str = "", condition: str = "", sort: str = "newest"):
+    if not user_for(request):
+        return redirect("/login?next=/")
     clauses = ["p.status='active'"]
     args: list[str] = []
     if q.strip():
@@ -288,11 +322,18 @@ def product_detail(request: Request, product_id: int):
         ).fetchall()
     certificate = None
     certificate_error = None
+    certificate_base = None
     if product["craftproof_code"]:
-        certificate, certificate_error = certificate_data(product["craftproof_code"])
+        certificate, certificate_error, certificate_base = certificate_data(request, product["craftproof_code"])
+    registered_title = certificate.get("piece", {}).get("title") if isinstance(certificate, dict) and isinstance(certificate.get("piece"), dict) else None
+    certificate_mismatch = bool(
+        isinstance(registered_title, str)
+        and " ".join(registered_title.split()).casefold() != " ".join(product["title"].split()).casefold()
+    )
     gallery = SAMPLE_GALLERIES.get(product["title"], []) if product["is_sample"] else []
     return render(request, "product.html", product=product, similar=similar, gallery=gallery,
-                  certificate=certificate, certificate_error=certificate_error)
+                  certificate=certificate, certificate_error=certificate_error,
+                  certificate_base=certificate_base, certificate_mismatch=certificate_mismatch)
 
 
 @app.get("/sell", response_class=HTMLResponse)
@@ -434,7 +475,8 @@ def account(request: Request, tab: str = "listings"):
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, next: str = "/account"):
-    return render(request, "auth.html", mode="login", error=None, next=next)
+    request.session.clear()
+    return render(request, "auth.html", mode="login", error=None, next=safe_next(next))
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -446,16 +488,18 @@ def login(request: Request, csrf: str = Form(...), email: str = Form(...), passw
         return render(request, "auth.html", mode="login", error="Incorrect email or password.", next=next)
     request.session.clear()
     request.session["user_id"] = user["id"]
-    return redirect(next if next.startswith("/") and not next.startswith("//") else "/account")
+    request.session["auth_version"] = AUTH_SESSION_VERSION
+    return redirect(safe_next(next))
 
 
 @app.get("/register", response_class=HTMLResponse)
-def register_page(request: Request):
-    return render(request, "auth.html", mode="register", error=None, next="/account")
+def register_page(request: Request, next: str = "/account"):
+    request.session.clear()
+    return render(request, "auth.html", mode="register", error=None, next=safe_next(next))
 
 
 @app.post("/register", response_class=HTMLResponse)
-def register(request: Request, csrf: str = Form(...), name: str = Form(...), email: str = Form(...), password: str = Form(...)):
+def register(request: Request, csrf: str = Form(...), name: str = Form(...), email: str = Form(...), password: str = Form(...), next: str = Form("/account")):
     require_csrf(request, csrf)
     error = None
     if not 2 <= len(name.strip()) <= 80:
@@ -465,7 +509,7 @@ def register(request: Request, csrf: str = Form(...), name: str = Form(...), ema
     elif len(password) < 8:
         error = "Password must be at least 8 characters."
     if error:
-        return render(request, "auth.html", mode="register", error=error, next="/account")
+        return render(request, "auth.html", mode="register", error=error, next=safe_next(next))
     try:
         with db() as con:
             cursor = con.execute(
@@ -474,17 +518,19 @@ def register(request: Request, csrf: str = Form(...), name: str = Form(...), ema
             )
             user_id = cursor.lastrowid
     except sqlite3.IntegrityError:
-        return render(request, "auth.html", mode="register", error="An account with this email already exists.", next="/account")
+        return render(request, "auth.html", mode="register", error="An account with this email already exists.", next=safe_next(next))
     request.session.clear()
     request.session["user_id"] = user_id
-    return redirect("/account", "Welcome to ReMarket.", request)
+    request.session["auth_version"] = AUTH_SESSION_VERSION
+    return redirect(safe_next(next), "Welcome to ReMarket.", request)
 
 
 @app.post("/logout")
-def logout(request: Request, csrf: str = Form(...)):
-    require_csrf(request, csrf)
+def logout(request: Request):
     request.session.clear()
-    return redirect("/", "You have signed out.", request)
+    response = redirect("/login")
+    response.delete_cookie("session", path="/")
+    return response
 
 
 def require_sale_api_key(request: Request) -> None:
@@ -500,6 +546,7 @@ def sale_payload(order: sqlite3.Row) -> dict:
     return {
         "order_id": f"RM-{order['id']:06d}",
         "certificate_code": order["certificate_code"],
+        "item_title": order["item_title"],
         "buyer_name": order["buyer_name"],
         "status": order["status"],
         "completed_at": order["completed_at"],
@@ -513,8 +560,10 @@ def sales_api(request: Request, after_id: int = 0, limit: int = 100):
         raise HTTPException(400, "Use after_id >= 0 and limit from 1 to 100")
     with db() as con:
         orders = con.execute(
-            """SELECT * FROM orders WHERE id > ? AND status='completed'
-               AND certificate_code IS NOT NULL ORDER BY id ASC LIMIT ?""",
+            """SELECT o.*, p.title AS item_title FROM orders o
+               JOIN products p ON p.id=o.product_id
+               WHERE o.id > ? AND o.status='completed'
+               AND o.certificate_code IS NOT NULL ORDER BY o.id ASC LIMIT ?""",
             (after_id, limit),
         ).fetchall()
     return {
@@ -530,7 +579,11 @@ def sale_api(request: Request, order_id: str):
     if not match:
         raise HTTPException(404, "Sale not found")
     with db() as con:
-        order = con.execute("SELECT * FROM orders WHERE id=?", (int(match.group(1)),)).fetchone()
+        order = con.execute(
+            """SELECT o.*, p.title AS item_title FROM orders o
+               JOIN products p ON p.id=o.product_id WHERE o.id=?""",
+            (int(match.group(1)),),
+        ).fetchone()
     if order is None:
         raise HTTPException(404, "Sale not found")
     return sale_payload(order)
