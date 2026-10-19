@@ -97,7 +97,7 @@ Authorization: Bearer YOUR_LONG_RANDOM_SECRET</code></pre>
         <span class="section-kicker">06 · BEFORE GOING LIVE</span>
         <h2>Current limits</h2>
         <p>This is a demo marketplace. Its purchase button records an order without payment or physical handoff verification. The buyer’s ReMarket name is self reported, so it is not proof of identity. CraftProof must decide what validation is sufficient before changing a real certificate.</p>
-        <p>ReMarket exposes the sale API, and an importer has been prepared in a local CraftProof fork. {% if api_key_configured %}This ReMarket server has a sale API key configured.{% else %}This ReMarket server needs a sale API key before CraftProof can read sales.{% endif %} The CraftProof fork is not pushed or deployed, so a local purchase will not change the live CraftProof website. A sale whose item title differs from the certificate title is skipped. The API is available in FastAPI’s <a class="text-link" href="/docs">interactive documentation</a>.</p>
+        <p>ReMarket exposes the sale API, and a CraftProof importer is proposed in <a class="text-link" href="https://github.com/vishaltantri/CraftProof-Authenticity-Tracking-for-Handmade-Goods/pull/1">draft PR #1</a>. {% if api_key_configured %}This ReMarket server has a sale API key configured.{% else %}This ReMarket server needs a sale API key before CraftProof can read sales.{% endif %} The importer is not deployed, so purchases do not yet change the live CraftProof website. A sale whose item title differs from the certificate title is skipped. The API is available in FastAPI’s <a class="text-link" href="/docs">interactive documentation</a>.</p>
       </section>
     </div>
   </div>

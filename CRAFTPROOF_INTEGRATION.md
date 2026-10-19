@@ -1,6 +1,6 @@
 # ReMarket → CraftProof ownership transfer
 
-This is the API contract for the CraftProof team. The ReMarket endpoints and CraftProof importer work on this computer with a local API key. The CraftProof fork has not been pushed or deployed, so the online CraftProof service is not connected to this local ReMarket server.
+This is the API contract for the CraftProof team. The ReMarket endpoints and CraftProof importer work on this computer with a local API key. The importer is proposed in [CraftProof draft PR #1](https://github.com/vishaltantri/CraftProof-Authenticity-Tracking-for-Handmade-Goods/pull/1) and has not been deployed, so the online CraftProof service is not yet connected to ReMarket.
 
 ## Flow
 

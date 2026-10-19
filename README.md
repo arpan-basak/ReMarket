@@ -39,7 +39,7 @@ On this computer the local key is saved in the Git-ignored `.env.local` file. To
 
 Send `Authorization: Bearer <key>` to `/api/v1/sales?after_id=0`. This returns completed certificate sales in ascending order, up to 100 per request, plus `next_after_id` for the next poll. `/api/v1/sales/RM-000001` retrieves a single order. Each sale has `order_id`, `certificate_code`, `item_title`, `buyer_name`, `status`, and `completed_at`. CraftProof checks that the item title matches the certificate title before importing. The certificate code and buyer name are saved when the purchase happens. No CraftProof user IDs are needed. See [CRAFTPROOF_INTEGRATION.md](CRAFTPROOF_INTEGRATION.md) for the proposed contract and partner checklist.
 
-CraftProof's current transfer request accepts a new holder name (`to_name`); it does not ask for an address. A certificate-code importer exists in the local CraftProof fork, but it is not pushed or deployed. The buyer name in ReMarket is self reported and is not an identity check.
+CraftProof's current transfer request accepts a new holder name (`to_name`); it does not ask for an address. A certificate-code importer is proposed in [CraftProof draft PR #1](https://github.com/vishaltantri/CraftProof-Authenticity-Tracking-for-Handmade-Goods/pull/1), but it is not deployed. The buyer name in ReMarket is self reported and is not an identity check.
 
 FastAPI’s interactive API docs are at <http://127.0.0.1:8000/docs>. The sale API returns 503 until a key is configured.
 The website also has a developer-facing API guide at <http://127.0.0.1:8000/api>, linked from the main navigation.
