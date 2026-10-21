@@ -4,17 +4,17 @@
 <section class="hero-section">
   <div class="container hero">
     <div class="hero-copy">
-      <span class="eyebrow"><span class="tiny-dot"></span> Local secondhand marketplace</span>
-      <h1>Give great gear a <span>second life.</span></h1>
-      <p>Find useful things from people nearby. Explore clear listing details and, when available, the item’s CraftProof ownership record.</p>
+      <span class="eyebrow"><span class="tiny-dot"></span> Local art marketplace</span>
+      <h1>Give great art a <span>new home.</span></h1>
+      <p>Discover paintings, prints, ceramics, and handmade art from people nearby. Explore each work and, when available, its CraftProof ownership record.</p>
       <form class="hero-search" action="/" method="get" role="search">
         <label class="sr-only" for="hero-q">Search listings</label>
-        <span class="search-icon" aria-hidden="true">⌕</span><input id="hero-q" type="search" name="q" value="{{ q }}" placeholder="Search cameras, bikes, books and more">
+        <span class="search-icon" aria-hidden="true">⌕</span><input id="hero-q" type="search" name="q" value="{{ q }}" placeholder="Search paintings, prints, ceramics and more">
         <button class="button button-primary" type="submit">Search items</button>
       </form>
-      <div class="hero-notes"><span>◎ Browse nearby listings</span><span>♧ Give items longer lives</span><span>◇ Optional CraftProof history</span></div>
+      <div class="hero-notes"><span>◎ Browse nearby art</span><span>♧ Give artworks new homes</span><span>◇ Optional CraftProof history</span></div>
     </div>
-    <div class="hero-art" aria-hidden="true"><div class="hero-ring"><span>✓</span></div><div class="hero-art-label">Good finds, new chapters.</div></div>
+    <div class="hero-art" aria-hidden="true"><div class="hero-ring"><span>✓</span></div><div class="hero-art-label">Great art, new chapters.</div></div>
   </div>
 </section>
 
@@ -23,7 +23,7 @@
     <a class="chip {% if not category %}selected{% endif %}" href="/?q={{ q|urlencode }}">All items</a>
     {% for item in categories %}<a class="chip {% if category == item %}selected{% endif %}" href="/?category={{ item|urlencode }}&q={{ q|urlencode }}">{{ item }}</a>{% endfor %}
   </div>
-  <div class="catalog-toolbar"><div class="section-head"><div><span class="section-kicker">DISCOVER</span><h2>Fresh finds</h2><p>Browse the latest items listed on ReMarket.</p></div><a class="text-link" href="/sell">Have something to sell? →</a></div>
+  <div class="catalog-toolbar"><div class="section-head"><div><span class="section-kicker">DISCOVER</span><h2>Fresh finds</h2><p>Browse the latest artworks listed on ReMarket.</p></div><a class="text-link" href="/sell">Have something to sell? →</a></div>
   <form class="filter-row" action="/" method="get">
     <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="category" value="{{ category }}">
     <div class="filter-pills" role="group" aria-label="Condition filter">

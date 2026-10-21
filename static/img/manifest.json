@@ -83,5 +83,45 @@
     "file": "asset-17.jpg",
     "alt": "",
     "source_page": "remarket_sell_an_item"
+  },
+  {
+    "file": "art-sunlit-hills.png",
+    "alt": "Original acrylic landscape painting of sunlit hills",
+    "source_page": "remarket_home"
+  },
+  {
+    "file": "art-sunlit-hills-detail.png",
+    "alt": "Angled detail of Sunlit Hills acrylic painting",
+    "source_page": "remarket_product_details"
+  },
+  {
+    "file": "art-blue-forms.png",
+    "alt": "Blue Forms framed linocut print",
+    "source_page": "remarket_home"
+  },
+  {
+    "file": "art-blue-forms-detail.png",
+    "alt": "Close detail of Blue Forms print and frame",
+    "source_page": "remarket_product_details"
+  },
+  {
+    "file": "art-stoneware-vase.png",
+    "alt": "Hand-thrown ivory stoneware vase",
+    "source_page": "remarket_home"
+  },
+  {
+    "file": "art-stoneware-vase-detail.png",
+    "alt": "Close detail of stoneware vase glaze",
+    "source_page": "remarket_product_details"
+  },
+  {
+    "file": "art-woven-sunset.png",
+    "alt": "Woven Sunset textile wall hanging",
+    "source_page": "remarket_home"
+  },
+  {
+    "file": "art-woven-sunset-detail.png",
+    "alt": "Close detail of Woven Sunset textile",
+    "source_page": "remarket_product_details"
   }
 ]

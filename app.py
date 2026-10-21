@@ -31,11 +31,30 @@ CRAFTPROOF_LOCAL_BASE = "http://127.0.0.1:8002"
 SALE_API_KEY = os.environ.get("REMARKET_SALE_API_KEY", "")
 AUTH_SESSION_VERSION = 1  # Older cookies were created before explicit sign-in was required.
 CATEGORIES = [
-    "Tech & Gadgets", "Bikes & Mobility", "Cameras", "Audio & Sound",
-    "Furniture & Home", "Study & Books", "Other",
+    "Paintings", "Prints", "Ceramics", "Sculpture",
+    "Photography", "Textiles", "Other",
 ]
 CONDITIONS = ["Like New", "Good", "Fair"]
+SAMPLE_ITEMS = [
+    ("Vintage Raleigh Commuter Bike", "Sunlit Hills Original Acrylic Painting",
+     "Original acrylic landscape on canvas with warm hills and a soft peach sky.",
+     "Paintings", "Good", 16500, "North Campus Quad", "art-sunlit-hills.png"),
+    ("Fujifilm X-T30 Mirrorless Camera", "Blue Forms Framed Linocut Print",
+     "Hand-pulled abstract linocut in layered blue ink, presented in a natural wood frame.",
+     "Prints", "Like New", 42000, "Engineering Hall", "art-blue-forms.png"),
+    ("Custom Mechanical Keyboard", "Hand-Thrown Stoneware Vase",
+     "Sculptural handmade vase with an ivory speckled glaze and a gently asymmetric shape.",
+     "Ceramics", "Like New", 9500, "Dorm Quad", "art-stoneware-vase.png"),
+    ("Sony WH-1000XM4 Headphones", "Woven Sunset Wall Hanging",
+     "Handwoven textile artwork in terracotta, rust, and cream with a natural fringe.",
+     "Textiles", "Good", 14000, "Central Library", "art-woven-sunset.png"),
+]
 SAMPLE_GALLERIES = {
+    "Sunlit Hills Original Acrylic Painting": ["art-sunlit-hills.png", "art-sunlit-hills-detail.png"],
+    "Blue Forms Framed Linocut Print": ["art-blue-forms.png", "art-blue-forms-detail.png"],
+    "Hand-Thrown Stoneware Vase": ["art-stoneware-vase.png", "art-stoneware-vase-detail.png"],
+    "Woven Sunset Wall Hanging": ["art-woven-sunset.png", "art-woven-sunset-detail.png"],
+    # Preserve gallery photos for any legacy sample that was already sold.
     "Vintage Raleigh Commuter Bike": ["asset-02.jpg", "asset-06.jpg"],
     "Fujifilm X-T30 Mirrorless Camera": ["asset-03.jpg", "asset-08.jpg", "asset-09.jpg", "asset-10.jpg", "asset-11.jpg"],
     "Custom Mechanical Keyboard": ["asset-04.jpg", "asset-16.jpg", "asset-17.jpg"],
@@ -160,16 +179,20 @@ def init_db() -> None:
                 ("Maya Lin", "demo@remarket.local", password_hash("demo12345"), now()),
             )
             seller_id = con.execute("SELECT id FROM users WHERE email=?", ("demo@remarket.local",)).fetchone()[0]
-            samples = [
-                ("Vintage Raleigh Commuter Bike", "A comfortable commuter bike with a wicker basket. Pick up locally.", "Bikes & Mobility", "Good", 16500, "North Campus Quad", "asset-02.jpg"),
-                ("Fujifilm X-T30 Mirrorless Camera", "Well cared for camera with lens and accessories. Ask the seller for details.", "Cameras", "Like New", 42000, "Engineering Hall", "asset-03.jpg"),
-                ("Custom Mechanical Keyboard", "Sage and cream mechanical keyboard, ready for a new desk.", "Tech & Gadgets", "Like New", 9500, "Dorm Quad", "asset-04.jpg"),
-                ("Sony WH-1000XM4 Headphones", "Comfortable noise cancelling headphones in good condition.", "Audio & Sound", "Good", 14000, "Central Library", "asset-05.jpg"),
-            ]
             con.executemany(
                 """INSERT INTO products(seller_id,title,description,category,condition,price_cents,location,image_path,is_sample,created_at)
                    VALUES(?,?,?,?,?,?,?,?,1,?)""",
-                [(seller_id, *item, now()) for item in samples],
+                [(seller_id, *item[1:], now()) for item in SAMPLE_ITEMS],
+            )
+        # Refresh only untouched, active demo products. Sold listings and real
+        # seller listings keep their titles for certificates and past orders.
+        for old_title, title, description, category, _condition, _price, _location, image in SAMPLE_ITEMS:
+            con.execute(
+                """UPDATE products SET title=?, description=?, category=?, image_path=?
+                   WHERE is_sample=1 AND title=? AND status='active'
+                     AND craftproof_code IS NULL
+                     AND NOT EXISTS (SELECT 1 FROM orders WHERE orders.product_id=products.id)""",
+                (title, description, category, image, old_title),
             )
         if not con.execute("SELECT 1 FROM users WHERE email=?", ("buyer@remarket.local",)).fetchone():
             con.execute(
