@@ -301,8 +301,6 @@ def certificate_data(request: Request, code: str):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, q: str = "", category: str = "", condition: str = "", sort: str = "newest"):
-    if not user_for(request):
-        return redirect("/login?next=/")
     clauses = ["p.status='active'"]
     args: list[str] = []
     if q.strip():
@@ -498,6 +496,8 @@ def account(request: Request, tab: str = "listings"):
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, next: str = "/account"):
+    if next == "/" and "next" in request.query_params:
+        return redirect("/")
     request.session.clear()
     return render(request, "auth.html", mode="login", error=None, next=safe_next(next))
 

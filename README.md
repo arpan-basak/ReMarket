@@ -13,7 +13,7 @@ python -m pip install -r requirements.txt
 python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000/>. You are sent to the sign-in page until you log in. The sample seller account is `demo@remarket.local` with password `demo12345`. The sample buyer account is `buyer@remarket.local` with password `buyer12345`. Purchases create a local completed order only; no payment or handoff is processed.
+Open <http://127.0.0.1:8000/> to browse listings without signing in. The old `/login?next=/` entry link also opens the browse page. Sign in or create an account before buying or selling. The sample seller account is `demo@remarket.local` with password `demo12345`. The sample buyer account is `buyer@remarket.local` with password `buyer12345`. Purchases create a local completed order only; no payment or handoff is processed.
 
 The site does not automatically sign in to a demo account. Existing sessions from older versions are invalidated, and new sign-ins use a browser-session cookie rather than a two-week cookie. Visiting the sign-in or registration page clears the current sign-in so you can switch accounts. To test buying, use the sample buyer or click **Create account** and register with your own name and email. You can also start from a listing's **Create account to buy** button; registration returns you to that listing. Use **Sign out** and **Sign in** to test the same buyer account again.
 
